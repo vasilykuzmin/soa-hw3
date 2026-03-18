@@ -1,0 +1,59 @@
+syntax = "proto2";
+
+message Flight {
+    required uint32 id = 1;
+    required string flight_number = 2;
+    required string flight_date = 3;
+    required string company = 4;
+    required string origin = 5;
+    required string destination = 6;
+    required string departure_datetime = 7;
+    required string arrival_datetime = 8;
+    required uint32 seat_capacity = 9;
+    required uint32 seat_available = 10;
+    required uint32 price = 11;
+    required string status = 12;
+}
+
+message SearchFlightsRequest {
+    required string origin = 1;
+    required string destination = 2;
+    optional string date = 3; 
+}
+
+message SearchFlightsResponse {
+    repeated Flight flights = 1;
+}
+
+message GetFlightRequest {
+    required uint32 id = 1;
+}
+
+message GetFlightResponse {
+    required Flight flight = 1;
+}
+
+message ReserveSeatsRequest {
+    required uint32 booking_id = 1;
+    required uint32 flight_id = 2;
+    required uint32 seat_count = 3;
+}
+
+message ReserveSeatsResponse {
+    // nothing
+}
+
+message ReleaseReservationRequest {
+    required uint32 booking_id = 1;
+}
+
+message ReleaseReservationResponse {
+    // nothing
+}
+
+service FlightService {
+    rpc SearchFlights (SearchFlightsRequest) returns (SearchFlightsResponse) {};
+    rpc GetFlight (GetFlightRequest) returns (GetFlightResponse) {};
+    rpc ReserveSeats (ReserveSeatsRequest) returns (ReserveSeatsResponse) {};
+    rpc ReleaseReservation (ReleaseReservationRequest) returns (ReleaseReservationResponse) {};
+}

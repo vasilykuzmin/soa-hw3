@@ -1,0 +1,94 @@
+services:
+  booking_service:
+    build:
+      context: src/booking_service
+      dockerfile: Dockerfile
+      additional_contexts:
+        flight_service: src/flight_service
+    environment:
+      GRPC_SERVER: flight_service:50051
+      POSTGRES_HOST: booking_service_postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: $BOOKING_SERVICE_DB_NAME
+      POSTGRES_USER: $BOOKING_SERVICE_DB_USER
+      POSTGRES_PASSWORD: $BOOKING_SERVICE_DB_PASSWORD
+    ports:
+      - 8080:80
+    depends_on:
+      booking_service_postgres:
+        condition: service_healthy
+  
+  booking_service_postgres:
+    image: postgres:latest
+    container_name: booking_service_postgres
+    environment:
+      POSTGRES_DB: $BOOKING_SERVICE_DB_NAME
+      POSTGRES_USER: $BOOKING_SERVICE_DB_USER
+      POSTGRES_PASSWORD: $BOOKING_SERVICE_DB_PASSWORD
+    ports:
+      - "8081:5432"
+    volumes:
+      - ./volumes/booking_service_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $BOOKING_SERVICE_DB_USER -d $BOOKING_SERVICE_DB_NAME"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  booking_service_postgres_flyway:
+    image: flyway/flyway:latest
+    environment:
+      FLYWAY_URL: jdbc:postgresql://booking_service_postgres:5432/$BOOKING_SERVICE_DB_NAME
+      FLYWAY_USER: $BOOKING_SERVICE_DB_USER
+      FLYWAY_PASSWORD: $BOOKING_SERVICE_DB_PASSWORD
+    command: migrate
+    volumes:
+      - ./src/migrations/booking_service:/flyway/sql
+    depends_on:
+      booking_service_postgres:
+        condition: service_healthy
+
+
+  flight_service:
+    build: src/flight_service/
+    ports:
+      - 50051:50051
+    environment:
+      POSTGRES_HOST: flight_service_postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: $FLIGHT_SERVICE_DB_NAME
+      POSTGRES_USER: $FLIGHT_SERVICE_DB_USER
+      POSTGRES_PASSWORD: $FLIGHT_SERVICE_DB_PASSWORD
+    depends_on:
+      flight_service_postgres:
+        condition: service_healthy
+
+  flight_service_postgres:
+    image: postgres:latest
+    container_name: flight_service_postgres
+    environment:
+      POSTGRES_DB: $FLIGHT_SERVICE_DB_NAME
+      POSTGRES_USER: $FLIGHT_SERVICE_DB_USER
+      POSTGRES_PASSWORD: $FLIGHT_SERVICE_DB_PASSWORD
+    ports:
+      - "8083:5432"
+    volumes:
+      - ./volumes/flight_service_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $FLIGHT_SERVICE_DB_USER -d $FLIGHT_SERVICE_DB_NAME"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  flight_service_postgres_flyway:
+    image: flyway/flyway:latest
+    environment:
+      FLYWAY_URL: jdbc:postgresql://flight_service_postgres:5432/$FLIGHT_SERVICE_DB_NAME
+      FLYWAY_USER: $FLIGHT_SERVICE_DB_USER
+      FLYWAY_PASSWORD: $FLIGHT_SERVICE_DB_PASSWORD
+    command: migrate
+    volumes:
+      - ./src/migrations/flight_service:/flyway/sql
+    depends_on:
+      flight_service_postgres:
+        condition: service_healthy
